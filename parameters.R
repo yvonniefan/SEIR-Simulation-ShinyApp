@@ -39,10 +39,11 @@ f_gt60 = 0.03
 
 # ---- initialization -----
 S0 = A*tao_arrival
+N = A*tao_arrival
 E0 = 10
 I0 = 1
 R0 = 0
-len = 90
+len = 200
 record = data.frame(matrix(0,nrow=len, ncol=4))
 # rates:
 y=1
@@ -64,17 +65,17 @@ for (i in 1:len){
   # E0 = max(0, E + i_N*C_max * (mu*S*E + alpha*S*I))
   # I0 = max(0, I + i_N*C_max * (alpha*S*I) - r_recover*I0)
   
-  # S0 = max(0, S  - i_N*C_max * (alpha*S*E))
+  S0 = max(0, S - i_N*C_max*S/N * (mu*E + alpha*I))
+  E0 = max(0, E + i_N*C_max*S/N * (mu*E + alpha*I) - E/tao_1)
+  I0 = max(0, I + E/tao_1 - r_recover*I0)
+  R0 = max(0, R + r_recover*I0)
+  
+  # # seems working: based on video
+  # S0 = max(0, S - i_N*C_max * (alpha*S*E))
   # E0 = max(0, E + i_N*C_max * (alpha*S*E) - i_N*C_max * (mu*E))
   # I0 = max(0, I + i_N*C_max * (mu*E) - r_recover*I0)
   # R0 = max(0, R + r_recover*I0)
-  
-  # seems working: based on video
-  S0 = max(0, S  - i_N*C_max * (alpha*S*E))
-  E0 = max(0, E + i_N*C_max * (alpha*S*E) - i_N*C_max * (mu*E))
-  I0 = max(0, I + i_N*C_max * (mu*E) - r_recover*I0)
-  R0 = max(0, R + r_recover*I0)
- 
+
   record[i,1] = S0
   record[i,2] = E0
   record[i,3] = I0
@@ -86,3 +87,5 @@ ggplot(data=record) +
   geom_line(aes(x=1:len, y=X2), color='yellow')+
   geom_line(aes(x=1:len, y=X3), color='red')+
   geom_line(aes(x=1:len, y=X4), color='green')
+
+
