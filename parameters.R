@@ -31,8 +31,8 @@ len = 200 # Number of days simulated
 
 # Dataframe to record cumulative cases:
 # this is the table you can use for creating visuals
-recordcum = data.frame(matrix(0,nrow=len, ncol=4))
-colnames(recordcum) <- c('susceptible', 'exposed', 'infected','recovered')
+record = data.frame(matrix(0,nrow=len, ncol=4))
+colnames(record) <- c('susceptible', 'exposed', 'infected','recovered')
 
 # ------ Simulation --------
 for (i in 1:len){
@@ -48,19 +48,19 @@ for (i in 1:len){
   I0 = max(0, I + E/tao_1 - I0/tao_2) # equation 6
   R0 = max(0, R + I0/tao_2) # equation 8
   
-  recordcum[i,1] = S0
-  recordcum[i,2] = E0
-  recordcum[i,3] = I0
-  recordcum[i,4] = R0
+  record[i,1] = S0
+  record[i,2] = E0
+  record[i,3] = I0
+  record[i,4] = R0
 }
-recordcum$day = c(1:len)
-# recordcum
+record$day = c(1:len)
+# record
 colors <- c("Susceptible" = "black",
             "Exposed" = "yellow", 
             "Infected" = "red", 
             "Recovered" = "green")
 
-ggplot(data=recordcum) +
+ggplot(data=record) +
   geom_line(aes(x=day, y=susceptible, color='Susceptible')) +
   geom_line(aes(x=day, y=exposed, color='Exposed')) +
   geom_line(aes(x=day, y=infected, color='Infected')) +
