@@ -161,7 +161,10 @@ ui <- fluidPage(
                              "Cornell University", 
                              "None of the above"),
                   selected = "None of the above"
-      )
+      ),
+      #description of variables
+      actionButton("variables", "Information about Inputs"),
+      textOutput("variable_text") #information about variables
     ),
     
     # Show a plot of the generated distribution
@@ -227,8 +230,14 @@ server <- function(input, output) {
                   value = round(cornell/14))
     }
   })
-  # plot
   
+  #variable information 
+  variableInfo <- observeEvent(input$variables, {
+    output$variable_text <- renderText({
+      "University Closure Decision: 0 (university open), 1 (university decided to close)"})
+  })
+  
+  # plot
   colors <- c("Susceptible" = "black",
               "Exposed" = "yellow", 
               "Infected" = "red", 
