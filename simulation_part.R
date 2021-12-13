@@ -73,32 +73,50 @@ func_getcum <- function(data){
                                 cum_R = cumsum(recovered))
   return(cumulative)
 }
-# 
-# ourrecord <- simfunc(A=100)
-# # ourrecord$rollavg <- roll_mean(ourrecord$infected, n=7, align='right',fill=NA)
-# # mean(ourrecord[2:8,3])
-# 
-# cumulative <- func_getcum(ourrecord)
-# 
-# 
-# colors <- c("Susceptible" = "black",
-#             "Exposed" = "yellow", 
-#             "Infected" = "red", 
-#             "Recovered" = "green")
-# ggplot(data=ourrecord) +
-#   geom_line(aes(x=days, y=susceptible, color="Susceptible")) +
-#   geom_line(aes(x=days, y=exposed, color="Exposed"))+
-#   geom_line(aes(x=days, y=infected, color="Infected"))+
-#   geom_line(aes(x=days, y=recovered, color="Recovered"))+
-#   geom_line(aes(x=days, y=rollavg, color="purple"))+
-#   labs(y="Daily cases", x= "Days")+
-#   scale_color_manual(values = colors)
-# 
-# 
-# ggplot(data=cumulative) +
-#   geom_line(aes(x=days, y=cum_E, color="Exposed"))+
-#   geom_line(aes(x=days, y=cum_I, color="Infected"))+
-#   # geom_line(aes(x=days, y=cum_R, color="Recovered")) +
-#   labs(y="Cumulative Cases", x= "Days")+
-#   scale_color_manual(values = c( "Exposed" = "yellow", 
-#                                  "Infected" = "red"))
+
+ourrecord <- simfunc(A=100)
+cumulative <- func_getcum(ourrecord)
+
+
+colors <- c("Susceptible" = "black",
+            "Exposed" = "yellow",
+            "Infected" = "red",
+            "Recovered" = "green")
+
+# daily cases plot:
+ggplot(data=ourrecord) +
+  # geom_line(aes(x=days, y=susceptible, color="Susceptible")) +
+  geom_line(aes(x=days, y=exposed, color="Exposed")) +
+  geom_line(aes(x=days, y=infected, color="Infected")) +
+  geom_line(aes(x=days, y=C), linetype=3) +
+  # geom_line(aes(x=days, y=recovered, color="Recovered"))+
+  labs(y="Daily cases", x= "Days") +
+  scale_linetype_manual(name='contact rate' ,values="C")+
+  scale_color_manual(values = colors) 
+
+
+# cumulative cases plot:
+ggplot(data=cumulative) +
+  geom_line(aes(x=days, y=cum_E, color="Exposed"))+
+  geom_line(aes(x=days, y=cum_I, color="Infected"))+
+  # geom_line(aes(x=days, y=cum_R, color="Recovered")) +
+  labs(y="Cumulative Cases", x= "Days")+
+  scale_color_manual(values = c( "Exposed" = "yellow",
+                                 "Infected" = "red"))
+# rolling average:
+ggplot(data=ourrecord)+
+  geom_line(aes(x=days, y=rollavg), color="orange") +
+  ggtitle('14 Days Rolling Average')
+
+
+# SEIR plot:
+ourrecord <- simfunc(A=100, h=0, phi=1)
+ggplot(data=ourrecord) +
+  geom_line(aes(x=days, y=susceptible, color="Susceptible")) +
+  geom_line(aes(x=days, y=exposed, color="Exposed")) +
+  geom_line(aes(x=days, y=infected, color="Infected")) +
+  # geom_line(aes(x=days, y=C), linetype=3) +
+  geom_line(aes(x=days, y=recovered, color="Recovered"))+
+  labs(y="Daily cases", x= "Days") +
+  scale_color_manual(values = colors)
+
