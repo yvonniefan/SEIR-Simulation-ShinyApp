@@ -3,7 +3,7 @@ library(tidyverse)
 
 # this plot has one plotly graph
 
-##########################################################################
+########################################################################## 
 # school numbers 
 # using fall 2020 student-to-faculty ratios
 # all data from Common Data Sets (CDS)
