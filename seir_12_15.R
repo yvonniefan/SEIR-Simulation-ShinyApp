@@ -98,6 +98,7 @@ ui <- fluidPage(
       actionButton("variables", "Information about Inputs"),
       #new: bulleted list https://stackoverflow.com/questions/22923784/how-to-add-bullet-points-in-r-shinys-rendertext/22930719
       uiOutput("myList")
+      
     ),
     
     # Show a plot of the generated distribution
@@ -105,7 +106,10 @@ ui <- fluidPage(
       tabsetPanel(type="tabs",
                   tabPanel("Daily cases", plotlyOutput("distPlot"), textOutput('text'), textOutput('contact')),
                   tabPanel("Cumulative cases", plotlyOutput("distPlotcum"), textOutput('text2'), textOutput('contact2')),
-                  tabPanel("SEIR Curve", plotlyOutput("seir_curve") ),
+                  tabPanel("SEIR Curve", plotlyOutput("seir_curve"), textOutput('textseir')),
+                  tabPanel("Behaviour and Policy Analysis", plotOutput("analysis"),
+                           radioButtons("graph", "Choose Statistic:", choices = c("Daily Average", "Daily Maximum")),
+                           textOutput('textanalysis')),
                   
                   tabPanel("Summary", verbatimTextOutput("summary"), 
                            p("C is contact rate. This is related to 
@@ -190,7 +194,7 @@ server <- function(input, output) {
               "Infected" = "red", 
               "Recovered" = "green")
   colors2 <- c("Exposed" = "yellow", 
-              "Infected" = "red")
+               "Infected" = "red")
   linetypes <- c('C'=3)
   
   #daily cases plot
@@ -201,7 +205,7 @@ server <- function(input, output) {
       geom_line(aes(x=days, y=infected, color="Infected")) +
       geom_line(aes(x=days, y=C), linetype=3) +
       # geom_line(aes(x=days, y=C), linetype=3) +
-      geom_line(aes(x=days, y=rollavg), linetype=2) +
+      # geom_line(aes(x=days, y=rollavg), linetype=2) +
       labs(y="Daily cases", x= "Days") +
       scale_color_manual(name='Status', values = colors2) +
       # annotate("text", x = 90, y = 20, label = 'Dotted line: Contact Rate', hjust = 0, size = 2) +
@@ -215,7 +219,7 @@ server <- function(input, output) {
       geom_line(aes(x=days, y=cum_I, color="Infected"))+
       labs(y="Cumulative Cases", x= "Days")+
       scale_color_manual(name='Status', values = c( "Exposed" = "yellow", 
-                                     "Infected" = "red"))+
+                                                    "Infected" = "red"))+
       ggtitle("Cumulative cases of COVID-19")
   })
   # plot that shows all SEIR curves
@@ -228,31 +232,72 @@ server <- function(input, output) {
       labs(y="Daily Number", x= "Days") +
       scale_color_manual(values = colors) +
       ggtitle("SEIR Model")
-    
   })
   
   output$summary <- renderPrint({
     summary(simfunc())
   })
-  # 
+  
   output$contact <- renderText({
     paste0('Minimum contact rate: ', round(min(record_reac()$C),1),
-           '  Max contact rate: ', max(record_reac()$C), 
+           '  Max contact rate: ', round(max(record_reac()$C),1), 
            '  Average contact rate: ', round(mean(record_reac()$C),1))
   })
   output$contact2 <- renderText({
     paste0('Minimum contact rate: ', round(min(record_reac()$C),1), 
-           '  Max contact rate: ', max(record_reac()$C), 
+           '  Max contact rate: ', round(max(record_reac()$C),1), 
            '  Average contact rate: ', round(mean(record_reac()$C),1))
   })
   
-  #NEW: add description of plot 
+  # Add description of plots  
   output$text <- renderText({
     "Dotted line shows contact rate change over time, which depends on students sensitivity to daily COVID cases. Solid lines represent daily cases with status exposed and infected"
   })
   output$text2 <- renderText({
     "Dotted line shows contact rate change over time, which depends on students sensitivity to daily COVID cases. Solid lines represent daily cases with status exposed and infected"
   })
+  output$textseir <- renderText({
+    "SEIR curve under the parameters chosen. Note when sensitivity is set to 0, the graph looks like a typical SEIR curve."
+  })
+  output$textanalysis <- renderText({
+    "Daily cases is negatively related to student sensitivity. In addition, when university conducts closure policy (green line), we would observe lower cases in both infected and exposed"
+  })
+  
+  # Behaviour ana Policy analysis:
+  sensi <- seq(1,20)*50 # initilize a list of sensitivities
+  policy1 <- analysis_behaviour(1, sensi)
+  policy1$policy = 1
+  policy0 <- analysis_behaviour(0, sensi)
+  policy0$policy = 0
+  policy2 <- rbind(policy0,policy1)
+  
+  plotmean <- reactive({
+    policy2 %>% filter(stat=='mean') %>%
+      ggplot() +
+      geom_line(aes(x=sensi, y=value, color=closure, linetype=status)) +
+      labs(x='Student Sensitivity', y='Daily Values') +
+      ggtitle('Daily Average by Student Sensitivity and University Closure Decision')
+  })
+  plotmax <- reactive({
+    policy2 %>% filter(stat=='max') %>%
+      ggplot() +
+      geom_line(aes(x=sensi, y=value, color=closure, linetype=status)) + 
+      labs(x='Student Sensitivity', y='Daily Values') +
+      ggtitle('Daily Maximum by Student Sensitivity and University Closure Decision')
+  })
+  
+  graphInput <- reactive({
+    switch(input$graph,
+           "Daily Average" = plotmean(),
+           "Daily Maximum" = plotmax()
+    )
+  })
+  output$analysis <- renderPlot({ 
+    graphInput()
+  })
+  
+  
+  
   }
 
 
