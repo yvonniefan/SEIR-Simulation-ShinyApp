@@ -1,3 +1,4 @@
+
 library(shiny)
 library(tidyverse)
 
@@ -164,18 +165,25 @@ ui <- fluidPage(
       ),
       #description of variables
       actionButton("variables", "Information about Inputs"),
-      textOutput("variable_text") #information about variables
+      #new: bulleted list https://stackoverflow.com/questions/22923784/how-to-add-bullet-points-in-r-shinys-rendertext/22930719
+      uiOutput("myList")
     ),
     
     # Show a plot of the generated distribution
     mainPanel(
       tabsetPanel(type="tabs",
-                  tabPanel("Daily cases", plotlyOutput("distPlot"), textOutput('contact')),
+                  tabPanel("Daily cases", plotlyOutput("distPlot"), textOutput('contact'), textOutput('text')),
                   tabPanel("Cumulative cases", plotlyOutput("distPlotcum")),
-                  tabPanel("Summary", verbatimTextOutput("summary")))
-    )
+                  tabPanel("Summary", verbatimTextOutput("summary"), 
+                           p("C is contact rate. This is related to 
+                             student sensitivity to COVID-19 and rolling average of COVID-19 cases."))),
+      # turn off error messages while app is loading
+      tags$style(type= "text/css",
+                 ".shiny-output-error{visibility:hidden;}",
+                 ".shiny-output-error:before{visibility:hidden;}")
+                           )
   )
-  )
+)
 
 # Define server logic 
 server <- function(input, output) {
@@ -233,8 +241,14 @@ server <- function(input, output) {
   
   #variable information 
   variableInfo <- observeEvent(input$variables, {
-    output$variable_text <- renderText({
-      "University Closure Decision: 0 (university open), 1 (university decided to close)"})
+    output$myList <- renderUI(HTML("<ul>
+                                   <li> <b> Arrival rate of students</b>: students per day</li>
+                                   <li> <b> Constant contact rate </b>: Maximum contact (person/day) possible </li> 
+                                   <li> <b> Infection probability </b>: The affect rate of transmission/infection in the absence of a mask (person/day) </li>
+                                   <li> <b>Student Sensitivity to COVID</b>: Student's sensitivity to the disease and the number of cases at the university.
+                                   This affects the contact rate (e.g 0 = student has no sensitivity, contact rate is kept at the maximum) </li>
+                                   <li> <b> University Closure Decision</b>: 0 (university open), 1 (university decided to close) </li>
+                                   </ul>"))
   })
   
   # plot
@@ -243,18 +257,19 @@ server <- function(input, output) {
               "Infected" = "red", 
               "Recovered" = "green")
   
+  #daily cases plot
   output$distPlot <- renderPlotly({
     ggplot(data=record_reac()) +
       geom_line(aes(x=days, y=exposed, color="Exposed"))+
       geom_line(aes(x=days, y=infected, color="Infected"))+
       # New: plot contact rate changes over time:
-      geom_line(aes(x=days, y=C), linetype=3) +
+      geom_line(aes(x=days, y=C), linetype = 3) +
       labs(y="Daily cases", x= "Days")+
       scale_color_manual(values = colors)+
       ggtitle("Daily cases of COVID-19")
   })
   
-  # New: plot that shows daily cases
+  # plot that shows cumulative cases
   output$distPlotcum <- renderPlotly({
     ggplot(data=cum_reac()) +
       geom_line(aes(x=days, y=cum_E, color="Exposed"))+
@@ -267,13 +282,20 @@ server <- function(input, output) {
   output$summary <- renderPrint({
     summary(simfunc())
   })
-  # New: show min/max contact rate:
+  # 
   output$contact <- renderText({
-    paste0('Minimum contact rate:', round(min(record_reac()$C),1), 
-           '  Max contact rate:', max(record_reac()$C), 
-           '  Average contact rate:', round(mean(record_reac()$C),1))
+    paste0('Minimum contact rate: ', round(min(record_reac()$C),1), 
+           '  Max contact rate: ', max(record_reac()$C), 
+           '  Average contact rate: ', round(mean(record_reac()$C),1))
   })
-}
+  
+  #NEW: add description of plot 
+  output$text <- renderText({
+    "Yvonne - put description of plot (explain what black dotted line is perhaps?)
+    and maybe also explain the statistics above --> Get rid of this text when you 
+    put your stuff here!"
+  })
+  }
 
 
 # Run the application 
