@@ -68,7 +68,7 @@ simfunc <- function(A = 1786, tao_arrival = 14, tao_1=6, tao_2=10,mu=0.66, y=1, 
   return(record)
 }
 
-# docstring(simfunc)
+docstring(simfunc)
 
 # Get cumulative record: you should use simfunc() as data when calling this function:
 func_getcum <- function(data){
@@ -82,55 +82,12 @@ func_getcum <- function(data){
                                 cum_R = cumsum(recovered))
   return(cumulative)
 }
-# docstring(func_getcum)
+docstring(func_getcum)
 
 
 # Below are just tests for generating graphs. The actual graphs in the ShinyApp are created in the ShinyApp server.
 ourrecord <- simfunc(A=100)
 cumulative <- func_getcum(ourrecord)
-library(plotly)
-
-
-colors <- c("Susceptible" = "black",
-            "Exposed" = "yellow",
-            "Infected" = "red",
-            "Recovered" = "green")
-
-# daily cases plot:
-ggplot(data=ourrecord) +
-  geom_line(aes(x=days, y=exposed, color="Exposed")) +
-  geom_line(aes(x=days, y=infected, color="Infected")) +
-  geom_line(aes(x=days, y=C, linetype='C')) +
-  geom_line(aes(x=days, y=rollavg, linetype='roll')) +
-  labs(y="Daily cases", x= "Days") +
-  scale_color_manual(name='Status',values = c( Exposed = "yellow", Infected = "red")) +
-  scale_linetype_manual(name='Contact Rate',values=c(C = 3, roll=2)) + 
-  annotate("text", x = 90, y = 20, label = 'Dotted line: Contact Rate', hjust = 0, size = 2) +
-  # annotation_custom('text', xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf)+
-  
-  ggtitle("Daily cases of COVID-19")
-
-# cumulative cases plot:
-ggplot(data=cumulative) +
-  geom_line(aes(x=days, y=cum_E, color="Exposed"))+
-  geom_line(aes(x=days, y=cum_I, color="Infected"))+
-  labs(y="Cumulative Cases", x= "Days")+
-  scale_color_manual(values = c( "Exposed" = "yellow",
-                                 "Infected" = "red"))
-# rolling average:
-ggplot(data=ourrecord)+
-  geom_line(aes(x=days, y=rollavg), color="orange") +
-  ggtitle('14 Days Rolling Average')
-
-
-# SEIR plot:
-ggplot(data=ourrecord) +
-  geom_line(aes(x=days, y=susceptible, color="Susceptible")) +
-  geom_line(aes(x=days, y=exposed, color="Exposed")) +
-  geom_line(aes(x=days, y=infected, color="Infected")) +
-  geom_line(aes(x=days, y=recovered, color="Recovered"))+
-  labs(y="Daily cases", x= "Days") +
-  scale_color_manual(values = colors)
 
 # Explore relationship between student sensitivity, university closure policy and infected:
 analysis_behaviour <- function(closure, sensitivity){
