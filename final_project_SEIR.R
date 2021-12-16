@@ -1,14 +1,11 @@
-
 library(shiny)
 library(tidyverse)
+library(docstring)
 
-# ------ simulation ---------
+# ------ Simulation ---------
 # source("simulation_part.R")
 
 # This is the simulation/parameter code:
-
-library(tidyverse)
-library(docstring)
 # ------ Simulation function --------
 
 simfunc <- function(A = 1786, tao_arrival = 14, tao_1=6, tao_2=10,mu=0.66, y=1, C_max=13, i_N=0.037,
@@ -41,14 +38,14 @@ simfunc <- function(A = 1786, tao_arrival = 14, tao_1=6, tao_2=10,mu=0.66, y=1, 
   
   record = data.frame(matrix(0,nrow=len, ncol=4))
   colnames(record) <- c('susceptible', 'exposed', 'infected','recovered')
-  record[1,'C'] = C_max
+  record[1,'C'] = C_max # Initial contact rate is the maximum contact rate 
   
-  L_S = phi*S0/T
-  L_E = phi*E0/T
-  L_I = phi*I0/T
-  L_R = phi*R0/T
-  A_S = 0.97*A #daily arrival rate of students with status susceptible
-  A_E = 0.003*A
+  L_S = phi*S0/T # Leaving rate of students with status susceptible
+  L_E = phi*E0/T # Leaving rate of students with status exposed
+  L_I = phi*I0/T # Leaving rate of students with status infected
+  L_R = phi*R0/T # Leaving rate of students with status recovered
+  A_S = 0.97*A # daily arrival rate of students with status susceptible
+  A_E = 0.003*A # daily arrival rate of students with status exposed
   
   for (i in 1:len){
     S = S0
@@ -67,7 +64,7 @@ simfunc <- function(A = 1786, tao_arrival = 14, tao_1=6, tao_2=10,mu=0.66, y=1, 
     record[i,4] = R0
     # 7 days rolling average:
     record[i,'rollavg'] = mean(record[max((i-14),1) :i,3], na.rm=TRUE)
-    # W_N: factor that affect contact rate. Students tend to change behavior according to current covid cases
+    # W_N: factor that affects contact rate. Students tend to change behavior according to current covid cases
     record[i, 'W_N'] = exp(-h * ((record[i,'rollavg'])/N))
     record[i, 'C'] = C_max * record[i,'W_N']
   }
@@ -97,10 +94,11 @@ ourrecord <- simfunc(A=100)
 cumulative <- func_getcum(ourrecord)
 
 # Explore relationship between student sensitivity, university closure policy and infected:
-analysis_behaviour <- function(closure, sensitivity){
+analysis_behaviour <- function(closure, sensitivity) {
   #' Analyze behaviour and COVID cases
   #' 
-  #' Analyze relationship between student sensitivity, university closure policy and COIVD cases
+  #' Analyze relationship between student sensitivity, university closure policy and COIVD cases. 
+  #' The data is based on simulation run in simfunc() with default parameters value, except phi and h
   #' @param closure numeric, university closre policy, 1 means university closed, 0 means university open
   #' @param sensitivity numeric vector, students' sensitivity to daily COIVD cases
   #' @return A dataframe that records statistics (mean, maximum, and standard deviation) of daily cases under different policy and students' sensitivities
@@ -154,7 +152,7 @@ harvardstudents= 5186
 
 harvardfaculty= 973 
 
-harvard <- harvardstudents + harvardfaculty  
+harvard <- harvardstudents + harvardfaculty
 
 # yale: https://oir.yale.edu/sites/default/files/cds_2020-2021_yale_vf_030521.pdf
 yalestudents= 4698
@@ -240,7 +238,9 @@ ui <- fluidPage(
                   
                   tabPanel("Summary", verbatimTextOutput("summary"), 
                            p("C is contact rate. This is related to 
-                             student sensitivity to COVID-19 and rolling average of COVID-19 cases."))),
+                             student sensitivity to COVID-19 and rolling average of COVID-19 cases.
+                             W_N is factors affecting contact rate. Students tend to change behavior according to
+                             COVID-19 cases."))),
       # turn off error messages while app is loading
       tags$style(type= "text/css",
                  ".shiny-output-error{visibility:hidden;}",
@@ -252,9 +252,11 @@ ui <- fluidPage(
 # Define server logic 
 server <- function(input, output) {
   
+  # Generate reactive daily case dataframes according to users' input from sidebar
   record_reac <- reactive({ 
     simfunc(A = input$students,C_max = input$cmax, i_N =input$i_n, phi=as.numeric(input$phi), h=input$h)
   })
+  # Generate reactive cumulative cases based on daily case table above
   cum_reac <- reactive({ 
     func_getcum(record_reac())
   })
@@ -316,30 +318,29 @@ server <- function(input, output) {
   })
   
   # plot
+  # Colors for SEIR graph:
   colors <- c("Susceptible" = "black",
               "Exposed" = "yellow", 
               "Infected" = "red", 
               "Recovered" = "green")
+  
+  # Colors for daily/cumulative graph:
   colors2 <- c("Exposed" = "yellow", 
                "Infected" = "red")
   linetypes <- c('C'=3)
   
-  #daily cases plot
+  # Daily cases plot
   output$distPlot <- renderPlotly({
     ggplot(data=record_reac()) +
-      # geom_line(aes(x=days, y=susceptible, color="Susceptible")) +
       geom_line(aes(x=days, y=exposed, color="Exposed")) +
       geom_line(aes(x=days, y=infected, color="Infected")) +
       geom_line(aes(x=days, y=C), linetype=3) +
-      # geom_line(aes(x=days, y=C), linetype=3) +
-      # geom_line(aes(x=days, y=rollavg), linetype=2) +
       labs(y="Daily cases", x= "Days") +
       scale_color_manual(name='Status', values = colors2) +
-      # annotate("text", x = 90, y = 20, label = 'Dotted line: Contact Rate', hjust = 0, size = 2) +
       ggtitle("Daily cases of COVID-19")
   })
   
-  # plot that shows cumulative cases
+  # Cumulative cases plot
   output$distPlotcum <- renderPlotly({
     ggplot(data=cum_reac()) +
       geom_line(aes(x=days, y=cum_E, color="Exposed"))+
@@ -361,10 +362,12 @@ server <- function(input, output) {
       ggtitle("SEIR Model")
   })
   
+  # Summary tab:
   output$summary <- renderPrint({
     summary(simfunc())
   })
   
+  # Text that shows min/max/avg contact rate:
   output$contact <- renderText({
     paste0('Minimum contact rate: ', round(min(record_reac()$C),1),
            '  Max contact rate: ', round(max(record_reac()$C),1), 
@@ -390,14 +393,18 @@ server <- function(input, output) {
     "Daily cases is negatively related to student sensitivity. In addition, when university conducts closure policy (green line), we would observe lower cases in both infected and exposed"
   })
   
-  # Behaviour ana Policy analysis:
+  # Behaviour and Policy analysis:
   sensi <- seq(1,20)*50 # initilize a list of sensitivities
+  # Table policy1: Number of infected/exposed under different student sensitivity, with university closure policy
   policy1 <- analysis_behaviour(1, sensi)
   policy1$policy = 1
+  # Table policy0: Number of infected/exposed under different student sensitivity, without university closure policy
   policy0 <- analysis_behaviour(0, sensi)
   policy0$policy = 0
+  # Combine the two tables above
   policy2 <- rbind(policy0,policy1)
   
+  # Plot that shows daily average under different behaviour
   plotmean <- reactive({
     policy2 %>% filter(stat=='mean') %>%
       ggplot() +
@@ -405,6 +412,8 @@ server <- function(input, output) {
       labs(x='Student Sensitivity', y='Daily Values') +
       ggtitle('Daily Average by Student Sensitivity and University Closure Decision')
   })
+  
+  # Plot that shows daily maximum under different behaviour
   plotmax <- reactive({
     policy2 %>% filter(stat=='max') %>%
       ggplot() +
@@ -413,17 +422,19 @@ server <- function(input, output) {
       ggtitle('Daily Maximum by Student Sensitivity and University Closure Decision')
   })
   
+  # User can choose which plot to display in the UI
+  # Reference: https://stackoverflow.com/questions/48312392/shiny-allow-users-to-choose-which-plot-outputs-to-display
   graphInput <- reactive({
     switch(input$graph,
            "Daily Average" = plotmean(),
            "Daily Maximum" = plotmax()
     )
   })
+  
+  # Display either one of the plots from above
   output$analysis <- renderPlot({ 
     graphInput()
   })
-  
-  
   
   }
 
