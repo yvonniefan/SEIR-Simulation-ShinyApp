@@ -1,7 +1,7 @@
 library(shiny)
 library(tidyverse)
 library(docstring)
-
+library(kableExtra)
 
 #######################################################################
 ############################## Simulation #############################
@@ -10,7 +10,6 @@ library(docstring)
 
 # This is the simulation/parameter code:
 # ------ Simulation function --------
-
 simfunc <- function(A = 1786, tao_arrival = 14, tao_1=6, tao_2=10,mu=0.66, y=1, C_max=13, i_N=0.037,
                     E0=10,I0=1,R0=0, len=120, phi = 1, h = 100) {
   #' SEIR Simulation 
@@ -146,39 +145,31 @@ sensi <- seq(1,20)*50 # initilize a list of sensitivities
 
 # brown: #https://oir.brown.edu/sites/g/files/dprerj381/files/2020-04/CDS_2020_2021_Final2_0.pdf
 brownstudents= 6610 
-
 brownfaculty= 1056 
-
 brown <- brownstudents + brownfaculty
 
 # harvard: https://oir.harvard.edu/files/huoir/files/harvard_cds_2020-2021.pdf
 harvardstudents= 5186
-
 harvardfaculty= 973 
-
 harvard <- harvardstudents + harvardfaculty
 
 # yale: https://oir.yale.edu/sites/default/files/cds_2020-2021_yale_vf_030521.pdf
 yalestudents= 4698
-
 yalefaculty= 1102
-
 yale <- yalestudents + yalefaculty
 
 #upenn: https://ira.upenn.edu/sites/default/files/UPenn-Common-Data-Set-2020-21.pdf
 upennstudents= 9752
-
 upennfaculty= 1686
-
 upenn <- upennstudents + upennfaculty
 
 #cornell: http://irp.dpb.cornell.edu/wp-content/uploads/2021/06/CDS_2020-2021_FINAL.pdf
 corstudents= 14708
-
 corfaculty= 1688
-
 cornell <- corstudents + corfaculty
-# -------- Shiny App ---------
+
+
+################## UI: Shiny App  ##################
 library(plotly)
 
 ui <- fluidPage(
@@ -240,11 +231,13 @@ ui <- fluidPage(
                            radioButtons("graph", "Choose Statistic:", choices = c("Daily Average", "Daily Maximum")),
                            textOutput('textanalysis')),
                   
-                  tabPanel("Summary", verbatimTextOutput("summary"), 
+                  # tabPanel("Summary", verbatimTextOutput("summary"), 
+                  tabPanel("Summary", tableOutput("summary"), 
                            p("C is contact rate. This is related to 
                              student sensitivity to COVID-19 and rolling average of COVID-19 cases.
                              W_N is factors affecting contact rate. Students tend to change behavior according to
-                             COVID-19 cases."))),
+                             COVID-19 cases."))
+                  ),
       # turn off error messages while app is loading
       tags$style(type= "text/css",
                  ".shiny-output-error{visibility:hidden;}",
@@ -367,9 +360,20 @@ server <- function(input, output) {
   })
   
   # Summary tab:
-  output$summary <- renderPrint({
-    summary(simfunc())
-  })
+  # output$summary <- renderPrint({
+  #   summary(simfunc()) %>%
+  #     knitr::kable("html") %>%
+  #     kable_styling("striped", full_width = F)
+  # })
+  output$summary <- function(){
+    do.call(cbind, lapply(simfunc(), summary)) %>% 
+      round(2)  %>% 
+      t() %>%
+      knitr::kable("html") %>%
+      kable_styling("striped", full_width = F)
+  }
+  
+  
   
   # Text that shows min/max/avg contact rate:
   output$contact <- renderText({
